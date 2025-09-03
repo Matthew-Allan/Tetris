@@ -10,33 +10,61 @@ static uint16_t big_tiles[16] = {
     0x0022, 0x60b2, 0x042c, 0x5555
 };
 
-static uint32_t tile_disp[14] = {
+#define tile_types 14
+static uint32_t tile_disp[tile_types] = {
     0x00000000, 0x5050f8fe, 0x5555ffff, 0xf5f5ffff,
     0x50505050, 0x55555555, 0xf5f5f5f5, 0x00005050,
     0x00005555, 0x80e0f5f5, 0x50505555, 0x5555f5f5,
     0x55555751, 0xb5255555
 };
 
-#define colour_varients 2
-static uint8_t colour_schemes[colour_varients][4][3] = {
+#define scheme_size 4
+#define colour_varients 6
+static uint8_t colour_schemes[colour_varients][scheme_size][3] = {
     {
-        { 59,  23,  37},
-        {115,  23,  45},
-        {180,  32,  42},
-        {223,  62,  35},
+        {138, 150, 149},
+        {195, 220, 216},
+        {216, 235, 231},
+        {232, 250, 247},
     },
     {
-        { 20,  52, 100},
-        { 36, 159, 222},
-        { 32, 214, 199},
-        {166, 252, 219},
+        {228, 180, 184},
+        {239, 209, 212},
+        {244, 225, 227},
+        {251, 244, 245},
+    },
+    {
+        {195, 196, 198},
+        {216, 217, 218},
+        {237, 237, 238},
+        {247, 247, 247},
+    },
+    {
+        {247, 201, 221},
+        {251, 227, 237},
+        {252, 237, 243},
+        {253, 247, 249},
+    },
+    {
+        {181, 171, 120},
+        {197, 189, 150},
+        {215, 210, 183},
+        {230, 227, 209},
+    },
+    {
+        {125, 161, 145},
+        {147, 176, 163},
+        {178, 199, 190},
+        {199, 214, 208},
     },
 };
 
 #define shp_height 4
 #define shp_width 4
 
-#define shape_count 28
+#define shape_types 7
+#define shape_rotations 4
+#define shape_count (shape_types * shape_rotations)
 
 static uint16_t shapes[shape_count] = {
     0b0000000011110000, 0b0100010001000100, 0b0000111100000000, 0b0010001000100010, // I

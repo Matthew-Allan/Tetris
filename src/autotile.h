@@ -15,7 +15,7 @@
 #define display_width (img_width * tile_width * 2)
 
 void get_shape_data(int shape, uint8_t scheme, uint8_t image[img_height][img_width]);
-void get_shape_hit(int shape, uint8_t hitbox[img_height][img_width]);
+void get_shape_hit(int shape, uint8_t hitbox[shp_height][shp_width]);
 void print_shape(uint8_t image[img_height][img_width]);
 
 #endif

@@ -76,9 +76,9 @@ void get_shape_data(int shape, uint8_t scheme, uint8_t image[img_height][img_wid
     populate_image(shape, scheme, image);
 }
 
-void get_shape_hit(int shape, uint8_t hitbox[img_height][img_width]) {
-    for(int y = 0; y < img_height; y++) {
-        for(int x = 0; x < img_width; x++) {
+void get_shape_hit(int shape, uint8_t hitbox[shp_height][shp_width]) {
+    for(int y = 0; y < shp_height; y++) {
+        for(int x = 0; x < shp_width; x++) {
             hitbox[y][x] = get_shape(shape, x, y);
         }
     }

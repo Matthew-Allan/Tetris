@@ -22,7 +22,7 @@
 #define S_GRID_WIDTH (GRID_WIDTH * 2)
 #define S_GRID_HEIGHT (GRID_HEIGHT * 2)
 
-#define DROP_TIME 500
+#define DROP_TIME 400
 
 uint8_t tile_grid[S_GRID_HEIGHT][S_GRID_WIDTH] = {0};
 uint8_t grid[GRID_HEIGHT][GRID_WIDTH] = {0};
@@ -35,7 +35,7 @@ typedef struct falling_shape {
     int y;
     int x;
     uint8_t data[img_height][img_width];
-    uint8_t hitbox[img_height][img_width];
+    uint8_t hitbox[shp_height][shp_width];
     uint8_t scheme : 4;
 } falling_shape;
 
@@ -132,7 +132,7 @@ void setup_shader_data(GLuint shader) {
     glGenTextures(1, &textures);
     glBindTexture(GL_TEXTURE_1D, textures);
 
-    glTexImage1D(GL_TEXTURE_1D, 0, GL_R32UI, 14, 0, GL_RED_INTEGER, GL_UNSIGNED_INT, tile_disp);
+    glTexImage1D(GL_TEXTURE_1D, 0, GL_R32UI, tile_types, 0, GL_RED_INTEGER, GL_UNSIGNED_INT, tile_disp);
 
     glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -141,7 +141,7 @@ void setup_shader_data(GLuint shader) {
     glGenTextures(1, &colours);
     glBindTexture(GL_TEXTURE_2D, colours);
 
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 4, colour_varients, 0, GL_RGB, GL_UNSIGNED_BYTE, colour_schemes);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, scheme_size, colour_varients, 0, GL_RGB, GL_UNSIGNED_BYTE, colour_schemes);
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -154,14 +154,14 @@ void setup_shader_data(GLuint shader) {
 }
 
 int shape_index(int shape, int rot) {
-    return (shape * 4) + rot;
+    return (shape * shape_rotations) + rot;
 }
 
 int check_valid(falling_shape *shape, int x, int y, int rot) {
-    uint8_t test_hitbox[img_height][img_width];
+    uint8_t test_hitbox[shp_height][shp_width];
     get_shape_hit(shape_index(shape->shape, rot), test_hitbox);
-    for(int s_y = 0; s_y < 8; s_y++) {
-        for(int s_x = 0; s_x < 8; s_x++) {
+    for(int s_y = 0; s_y < shp_height; s_y++) {
+        for(int s_x = 0; s_x < shp_width; s_x++) {
             if(!test_hitbox[s_y][s_x]) {
                 continue;
             }
@@ -194,8 +194,6 @@ void update_shape(falling_shape *shape) {
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-
-    print_shape(shape->data);
 }
 
 void update_grid_tex(GLuint grid_tex) {
@@ -226,9 +224,9 @@ int move_shape(falling_shape *shape, int x, int y) {
 }
 
 int rotate_shape(falling_shape *shape, int rot) {
-    rot = (rot + shape->rot) % 4;
+    rot = (rot + shape->rot) % shape_rotations;
     if(rot < 0) {
-        rot += 4;
+        rot += shape_rotations;
     }
     if(!check_valid(shape, shape->x, shape->y, rot)) {
         return 0;
@@ -238,29 +236,66 @@ int rotate_shape(falling_shape *shape, int rot) {
     return 1;
 }
 
-void reset_shape(falling_shape *shape, int new_shape) {
+void reset_shape(falling_shape *shape, int new_shape, uint8_t scheme) {
     shape->shape = new_shape;
     shape->rot = 0;
     shape->y = 0;
     shape->x = 3;
-    shape->scheme = 0;
+    shape->scheme = scheme;
     shape->drop_timer = DROP_TIME;
     update_shape(shape);
 }
 
+void shift_rows_down(int y, int rows) {
+    int blocks_shifted = 1;
+    y -= rows;
+    for(; blocks_shifted && y >= 0; y--) {
+        printf("%d %d ", y, rows);
+        blocks_shifted = 0;
+        for(int x = 0; x < GRID_WIDTH; x++) {
+            blocks_shifted |= grid[y][x] || grid[y + rows][x] ^ grid[y][x];;
+            grid[y + rows][x] = grid[y][x];
+            for(int t_y = 0; t_y < 2; t_y++) {
+                for(int t_x = 0; t_x < 2; t_x++) {
+                    tile_grid[((y + rows) * 2) + t_y][(x * 2) + t_x] = tile_grid[(y * 2) + t_y][(x * 2) + t_x];
+                }
+            }
+        }
+        printf("%d \n", blocks_shifted);
+    }
+}
+
 void place_shape(falling_shape *shape, GLuint grid_tex) {
-    for(int s_y = 0; s_y < 8; s_y++) {
-        for(int s_x = 0; s_x < 8; s_x++) {
+    int clear[4] = {0};
+    for(int s_y = 0; s_y < shp_height; s_y++) {
+        int y = shape->y + s_y;
+        for(int s_x = 0; s_x < shp_width; s_x++) {
             if(!shape->hitbox[s_y][s_x]) {
                 continue;
             }
-            int x = shape->x + s_x, y = shape->y + s_y;
+            int x = shape->x + s_x;
             grid[y][x] = 1;
             for(int t_y = 0; t_y < 2; t_y++) {
                 for(int t_x = 0; t_x < 2; t_x++) {
                     tile_grid[(y * 2) + t_y][(x * 2) + t_x] = shape->data[(s_y * 2) + t_y][(s_x * 2) + t_x];
                 }
             }
+        }
+        clear[s_y] = 1;
+        for(int x = 0; clear[s_y] && x < GRID_WIDTH; x++) {
+            clear[s_y] = grid[y][x];
+        }
+    }
+
+    int clear_streak = 0;
+    for(int s_y = 0; s_y < shp_height; s_y++) {
+        int y = shape->y + s_y;
+        clear_streak += clear[s_y];
+        if((!clear[s_y] && clear_streak)) {
+            shift_rows_down(y - 1, clear_streak);
+            clear_streak = 0;
+        } else if (s_y == shp_height - 1 && clear_streak) {
+            shift_rows_down(y, clear_streak);
         }
     }
     update_grid_tex(grid_tex);
@@ -311,7 +346,7 @@ int run_game(SDL_Window *window) {
 
     falling_shape shape;
     glGenTextures(1, &shape.texture);
-    reset_shape(&shape, 0);
+    reset_shape(&shape, 0, 0);
 
     int running = 1;
 
@@ -333,7 +368,7 @@ int run_game(SDL_Window *window) {
             shape.drop_timer += DROP_TIME;
             if(!move_shape(&shape, 0, 1)) {
                 place_shape(&shape, grid_tex);
-                reset_shape(&shape, (shape.shape + 1) % 7);
+                reset_shape(&shape, (shape.shape + 1) % shape_types, (shape.scheme + 1) % colour_varients);
             }
         }
 
