@@ -26,6 +26,7 @@
 
 uint8_t tile_grid[S_GRID_HEIGHT][S_GRID_WIDTH] = {0};
 uint8_t grid[GRID_HEIGHT][GRID_WIDTH] = {0};
+int grid_updated = 1;
 
 typedef struct shape_bag {
     uint8_t bag_size;
@@ -42,6 +43,8 @@ typedef struct falling_shape {
     uint8_t data[img_height][img_width];
     uint8_t hitbox[shp_height][shp_width];
     uint8_t scheme : 4;
+    uint8_t updated : 1;
+    uint8_t placed : 1;
 } falling_shape;
 
 SDL_Window *create_window() {
@@ -85,11 +88,12 @@ SDL_Window *create_window() {
     int width, height;
     SDL_GetWindowSizeInPixels(window, &width, &height);
     glViewport(0, 0, height, width);
+    glClearColor(0, 0, 0, 1.0f);
 
     return window;
 }
 
-GLuint setup_screen_vao() {
+void setup_screen_vao() {
     float verticies[] = {
          0.5,  1,  0,   1, 1,   // top right
          0.5, -1,  0,   1, 0,   // bottom right
@@ -127,11 +131,9 @@ GLuint setup_screen_vao() {
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *) (3 * sizeof(float)));
     glEnableVertexAttribArray(0);
     glEnableVertexAttribArray(1);
-    
-    return VAO;
 }
 
-void setup_shader_data(GLuint shader) {
+GLuint setup_shader_data(GLuint shader) {
     GLuint textures, colours;
     glActiveTexture(GL_TEXTURE0);
     glGenTextures(1, &textures);
@@ -156,35 +158,11 @@ void setup_shader_data(GLuint shader) {
     glUniform1i(glGetUniformLocation(shader, "colours"), 1);
     glUniform1i(glGetUniformLocation(shader, "shape"), 2);
     glUniform1i(glGetUniformLocation(shader, "grid"), 3);
+
+    return glGetUniformLocation(shader, "shape_pos");
 }
 
-int shape_index(int shape, int rot) {
-    return (shape * shape_rotations) + rot;
-}
-
-int check_valid(falling_shape *shape, int x, int y, int rot) {
-    uint8_t test_hitbox[shp_height][shp_width];
-    get_shape_hit(shape_index(shape->shape, rot), test_hitbox);
-    for(int s_y = 0; s_y < shp_height; s_y++) {
-        for(int s_x = 0; s_x < shp_width; s_x++) {
-            if(!test_hitbox[s_y][s_x]) {
-                continue;
-            }
-
-            int blk_y = s_y + y, blk_x = s_x + x;
-            if(blk_y >= GRID_HEIGHT || blk_x >= GRID_WIDTH || blk_x < 0 || grid[blk_y][blk_x]) {
-                return 0;
-            }
-        }
-    }
-    return 1;
-}
-
-void update_shape(falling_shape *shape) {
-    int index = shape_index(shape->shape, shape->rot);
-    get_shape_data(index, shape->scheme, shape->data);
-    get_shape_hit(index, shape->hitbox);
-
+void update_shape_tex(falling_shape *shape) {
     glActiveTexture(GL_TEXTURE2);
     glBindTexture(GL_TEXTURE_2D, shape->texture);
 
@@ -216,6 +194,89 @@ void update_grid_tex(GLuint grid_tex) {
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+}
+
+void shift_rows_down(int y, int rows) {
+    int blocks_shifted = 1;
+    y -= rows;
+    for(; blocks_shifted && y >= 0; y--) {
+        blocks_shifted = 0;
+        for(int x = 0; x < GRID_WIDTH; x++) {
+            blocks_shifted |= grid[y][x] || grid[y + rows][x] ^ grid[y][x];;
+            grid[y + rows][x] = grid[y][x];
+            for(int t_y = 0; t_y < 2; t_y++) {
+                for(int t_x = 0; t_x < 2; t_x++) {
+                    tile_grid[((y + rows) * 2) + t_y][(x * 2) + t_x] = tile_grid[(y * 2) + t_y][(x * 2) + t_x];
+                }
+            }
+        }
+    }
+}
+
+void place_shape(falling_shape *shape) {
+    int clear[4] = {0};
+    for(int s_y = 0; s_y < shp_height; s_y++) {
+        int y = shape->y + s_y;
+        for(int s_x = 0; s_x < shp_width; s_x++) {
+            if(!shape->hitbox[s_y][s_x]) {
+                continue;
+            }
+            int x = shape->x + s_x;
+            grid[y][x] = 1;
+            for(int t_y = 0; t_y < 2; t_y++) {
+                for(int t_x = 0; t_x < 2; t_x++) {
+                    tile_grid[(y * 2) + t_y][(x * 2) + t_x] = shape->data[(s_y * 2) + t_y][(s_x * 2) + t_x];
+                }
+            }
+        }
+        clear[s_y] = 1;
+        for(int x = 0; clear[s_y] && x < GRID_WIDTH; x++) {
+            clear[s_y] = grid[y][x];
+        }
+    }
+
+    int clear_streak = 0;
+    for(int s_y = 0; s_y < shp_height; s_y++) {
+        int y = shape->y + s_y;
+        clear_streak += clear[s_y];
+        if((!clear[s_y] && clear_streak)) {
+            shift_rows_down(y - 1, clear_streak);
+            clear_streak = 0;
+        } else if (s_y == shp_height - 1 && clear_streak) {
+            shift_rows_down(y, clear_streak);
+        }
+    }
+    grid_updated = 1;
+    shape->placed = 1;
+}
+
+int shape_index(int shape, int rot) {
+    return (shape * shape_rotations) + rot;
+}
+
+void update_shape(falling_shape *shape) {
+    int index = shape_index(shape->shape, shape->rot);
+    get_shape_data(index, shape->scheme, shape->data);
+    get_shape_hit(index, shape->hitbox);
+    shape->updated = 1;
+}
+
+int check_valid(falling_shape *shape, int x, int y, int rot) {
+    uint8_t test_hitbox[shp_height][shp_width];
+    get_shape_hit(shape_index(shape->shape, rot), test_hitbox);
+    for(int s_y = 0; s_y < shp_height; s_y++) {
+        for(int s_x = 0; s_x < shp_width; s_x++) {
+            if(!test_hitbox[s_y][s_x]) {
+                continue;
+            }
+
+            int blk_y = s_y + y, blk_x = s_x + x;
+            if(blk_y >= GRID_HEIGHT || blk_x >= GRID_WIDTH || blk_x < 0 || grid[blk_y][blk_x]) {
+                return 0;
+            }
+        }
+    }
+    return 1;
 }
 
 int move_shape(falling_shape *shape, int x, int y) {
@@ -272,60 +333,21 @@ void reset_shape(falling_shape *shape, shape_bag *bag) {
     shape->y = 0;
     shape->x = 3;
     shape->drop_timer = DROP_TIME;
+    shape->updated = 1;
+    shape->placed = 0;
     update_shape(shape);
 }
 
-void shift_rows_down(int y, int rows) {
-    int blocks_shifted = 1;
-    y -= rows;
-    for(; blocks_shifted && y >= 0; y--) {
-        blocks_shifted = 0;
-        for(int x = 0; x < GRID_WIDTH; x++) {
-            blocks_shifted |= grid[y][x] || grid[y + rows][x] ^ grid[y][x];;
-            grid[y + rows][x] = grid[y][x];
-            for(int t_y = 0; t_y < 2; t_y++) {
-                for(int t_x = 0; t_x < 2; t_x++) {
-                    tile_grid[((y + rows) * 2) + t_y][(x * 2) + t_x] = tile_grid[(y * 2) + t_y][(x * 2) + t_x];
-                }
-            }
-        }
+void gravity(falling_shape *shape) {
+    if(!move_shape(shape, 0, 1)) {
+        place_shape(shape);
     }
 }
 
-void place_shape(falling_shape *shape, GLuint grid_tex) {
-    int clear[4] = {0};
-    for(int s_y = 0; s_y < shp_height; s_y++) {
-        int y = shape->y + s_y;
-        for(int s_x = 0; s_x < shp_width; s_x++) {
-            if(!shape->hitbox[s_y][s_x]) {
-                continue;
-            }
-            int x = shape->x + s_x;
-            grid[y][x] = 1;
-            for(int t_y = 0; t_y < 2; t_y++) {
-                for(int t_x = 0; t_x < 2; t_x++) {
-                    tile_grid[(y * 2) + t_y][(x * 2) + t_x] = shape->data[(s_y * 2) + t_y][(s_x * 2) + t_x];
-                }
-            }
-        }
-        clear[s_y] = 1;
-        for(int x = 0; clear[s_y] && x < GRID_WIDTH; x++) {
-            clear[s_y] = grid[y][x];
-        }
+void drop_shape(falling_shape *shape) {
+    while(!shape->placed) {
+        gravity(shape);
     }
-
-    int clear_streak = 0;
-    for(int s_y = 0; s_y < shp_height; s_y++) {
-        int y = shape->y + s_y;
-        clear_streak += clear[s_y];
-        if((!clear[s_y] && clear_streak)) {
-            shift_rows_down(y - 1, clear_streak);
-            clear_streak = 0;
-        } else if (s_y == shp_height - 1 && clear_streak) {
-            shift_rows_down(y, clear_streak);
-        }
-    }
-    update_grid_tex(grid_tex);
 }
 
 int poll_events(falling_shape *shape) {
@@ -344,6 +366,8 @@ int poll_events(falling_shape *shape) {
                 break;
             case SDLK_a: move_shape(shape, -1, 0);
                 break;
+            case SDLK_SPACE: drop_shape(shape);
+                break;
             default:
                 break;
             }
@@ -359,17 +383,11 @@ int run_game(SDL_Window *window) {
         return -1;
     }
 
-    glClearColor(0, 0, 0, 1.0f);
-
     setup_screen_vao();
-
-    setup_shader_data(shader);
-
-    GLuint pos_loc = glGetUniformLocation(shader, "shape_pos");
+    GLuint pos_loc = setup_shader_data(shader);
     
     GLuint grid_tex;
     glGenTextures(1, &grid_tex);
-    update_grid_tex(grid_tex);
 
     shape_bag bag;
     fill_bag(&bag);
@@ -380,7 +398,6 @@ int run_game(SDL_Window *window) {
     reset_shape(&shape, &bag);
 
     int running = 1;
-
     uint64_t prev_time = SDL_GetTicks64();
 
     while(running) {
@@ -395,15 +412,25 @@ int run_game(SDL_Window *window) {
         prev_time = time_value;
 
         shape.drop_timer -= delta_time;
-        if(shape.drop_timer <= 0) {
+        while(shape.drop_timer <= 0) {
             shape.drop_timer += DROP_TIME;
-            if(!move_shape(&shape, 0, 1)) {
-                place_shape(&shape, grid_tex);
-                reset_shape(&shape, &bag);
-                if(!check_valid(&shape, shape.x, shape.y, shape.rot)) {
-                    running = 0;
-                }
+            gravity(&shape);
+        }
+
+        if(shape.placed) {
+            reset_shape(&shape, &bag);
+            if(!check_valid(&shape, shape.x, shape.y, shape.rot)) {
+                return 0;
             }
+        }
+
+        if(shape.updated) {
+            update_shape_tex(&shape);
+        }
+
+        if(grid_updated) {
+            update_grid_tex(grid_tex);
+            grid_updated = 0;
         }
 
         glUniform2i(pos_loc, shape.x, shape.y);
