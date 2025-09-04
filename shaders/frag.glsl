@@ -13,10 +13,11 @@ uniform ivec2 shape_pos;
 const int tile_size = 4;
 
 const ivec2 dim = ivec2(20, 40);
+const vec3 background = vec3(25, 25, 25) / 255;
 
 vec4 get_tile_pixel(ivec2 pos, uint tile, uint scheme) {
     if(tile == 0u || tile > 14u) {
-        return vec4(0.1, 0.1, 0.1, 1);
+        return vec4(background, 1);
     }
     uint tile_data = texelFetch(tex, int(tile), 0).r;
     int pixel_index = pos.x + (pos.y * tile_size);

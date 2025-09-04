@@ -22,10 +22,15 @@
 #define S_GRID_WIDTH (GRID_WIDTH * 2)
 #define S_GRID_HEIGHT (GRID_HEIGHT * 2)
 
-#define DROP_TIME 400
+#define DROP_TIME 300
 
 uint8_t tile_grid[S_GRID_HEIGHT][S_GRID_WIDTH] = {0};
 uint8_t grid[GRID_HEIGHT][GRID_WIDTH] = {0};
+
+typedef struct shape_bag {
+    uint8_t bag_size;
+    uint8_t bag[shape_types];
+} shape_bag;
 
 typedef struct falling_shape {
     GLuint texture;
@@ -236,12 +241,36 @@ int rotate_shape(falling_shape *shape, int rot) {
     return 1;
 }
 
-void reset_shape(falling_shape *shape, int new_shape, uint8_t scheme) {
-    shape->shape = new_shape;
+void fill_bag(shape_bag *bag) {
+    for(int i = 0; i < shape_types; i++) {
+        bag->bag[i] = 0;
+    }
+    for(int i = shape_types; i > 0; i--) {
+        int index = rand() % i;
+        for(int j = 0; j <= index; j++) {
+            while(bag->bag[j]) {
+                j++; index++;
+            }
+        }
+        bag->bag[index] = i - 1;
+    }
+    bag->bag_size = shape_types;
+}
+
+int select_shape(shape_bag *bag) {
+    if(bag->bag_size == 0) {
+        fill_bag(bag);
+    }
+    bag->bag_size--;
+    return bag->bag[bag->bag_size];
+}
+
+void reset_shape(falling_shape *shape, shape_bag *bag) {
+    shape->shape = select_shape(bag);
+    shape->scheme = rand() % colour_varients;
     shape->rot = 0;
     shape->y = 0;
     shape->x = 3;
-    shape->scheme = scheme;
     shape->drop_timer = DROP_TIME;
     update_shape(shape);
 }
@@ -250,7 +279,6 @@ void shift_rows_down(int y, int rows) {
     int blocks_shifted = 1;
     y -= rows;
     for(; blocks_shifted && y >= 0; y--) {
-        printf("%d %d ", y, rows);
         blocks_shifted = 0;
         for(int x = 0; x < GRID_WIDTH; x++) {
             blocks_shifted |= grid[y][x] || grid[y + rows][x] ^ grid[y][x];;
@@ -261,7 +289,6 @@ void shift_rows_down(int y, int rows) {
                 }
             }
         }
-        printf("%d \n", blocks_shifted);
     }
 }
 
@@ -332,7 +359,7 @@ int run_game(SDL_Window *window) {
         return -1;
     }
 
-    glClearColor(0.f, 0.f, 0.f, 1.0f);
+    glClearColor(0, 0, 0, 1.0f);
 
     GLuint VAO = setup_screen_vao();
 
@@ -344,9 +371,13 @@ int run_game(SDL_Window *window) {
     glGenTextures(1, &grid_tex);
     update_grid_tex(grid_tex);
 
+    shape_bag bag;
+    fill_bag(&bag);
+
     falling_shape shape;
     glGenTextures(1, &shape.texture);
-    reset_shape(&shape, 0, 0);
+    srand(time(NULL));
+    reset_shape(&shape, &bag);
 
     int running = 1;
 
@@ -368,7 +399,10 @@ int run_game(SDL_Window *window) {
             shape.drop_timer += DROP_TIME;
             if(!move_shape(&shape, 0, 1)) {
                 place_shape(&shape, grid_tex);
-                reset_shape(&shape, (shape.shape + 1) % shape_types, (shape.scheme + 1) % colour_varients);
+                reset_shape(&shape, &bag);
+                if(!check_valid(&shape, shape.x, shape.y, shape.rot)) {
+                    running = 0;
+                }
             }
         }
 
