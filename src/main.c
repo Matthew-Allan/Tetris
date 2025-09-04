@@ -355,13 +355,13 @@ int poll_events(falling_shape *shape) {
 
 int run_game(SDL_Window *window) {
     GLuint shader;
-    if(buildShader(&shader, "shaders/vert.glsl", "shaders/frag.glsl") == -1) {
+    if(buildShader(&shader, "/Users/matthewallan/Tetris/shaders/vert.glsl", "/Users/matthewallan/Tetris/shaders/frag.glsl") == -1) {
         return -1;
     }
 
     glClearColor(0, 0, 0, 1.0f);
 
-    GLuint VAO = setup_screen_vao();
+    setup_screen_vao();
 
     setup_shader_data(shader);
 
@@ -418,6 +418,9 @@ int run_game(SDL_Window *window) {
 }
 
 int main(int argc, char const *argv[]) {
+    for(int i = 0; i < argc; i++) {
+        printf("%s\n", argv[i]);
+    }
     SDL_Window *window = create_window();
     if(window) {
         run_game(window);
