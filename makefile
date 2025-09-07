@@ -16,7 +16,7 @@ clean:
 	rm -r Tetris.app
 	rm -r Tetris.dSYM
 
-package: clean build
+mac: clean build
 	mkdir Tetris.app
 	mkdir Tetris.app/Contents
 	mkdir Tetris.app/Contents/Resources
