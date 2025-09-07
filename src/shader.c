@@ -1,4 +1,5 @@
 #include "shader.h"
+#include "paths.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -6,7 +7,9 @@
 #include <string.h>
 
 char *getFileText(const char *path) {
-    FILE *file = fopen(path, "r");
+    char *abs_path = get_path(path);
+    FILE *file = fopen(abs_path, "r");
+    free(abs_path);
 
     if(!file) {
         printf("Couldn't open file; %s\n", strerror(errno));

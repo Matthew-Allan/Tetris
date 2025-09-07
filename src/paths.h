@@ -1,6 +1,6 @@
 #ifndef PATHS_H
 #define PATHS_H
 
-char *get_path(char *rel);
+char *get_path(const char *rel);
 
 #endif
