@@ -28,26 +28,26 @@ uint8_t tile_grid[S_GRID_HEIGHT][S_GRID_WIDTH] = {0};
 uint8_t grid[GRID_HEIGHT][GRID_WIDTH] = {0};
 int grid_updated = 1;
 
-typedef struct shape_bag {
+typedef struct ShapeBag {
     uint8_t bag_size;
-    uint8_t bag[shape_types];
-} shape_bag;
+    uint8_t bag[SHAPE_TYPES];
+} ShapeBag;
 
-typedef struct falling_shape {
+typedef struct FallingShape {
     GLuint texture;
     int drop_timer;
     int shape;
     int rot;
     int y;
     int x;
-    uint8_t data[img_height][img_width];
-    uint8_t hitbox[shp_height][shp_width];
+    uint8_t data[IMG_HEIGHT][IMG_WIDTH];
+    uint8_t hitbox[SHP_HEIGHT][SHP_WIDTH];
     uint8_t scheme : 4;
     uint8_t updated : 1;
     uint8_t placed : 1;
-} falling_shape;
+} FallingShape;
 
-SDL_Window *create_window() {
+SDL_Window *createWindow() {
     printf("Initing SDL.\n");
     if(SDL_Init(SDL_INIT_VIDEO) < 0) {
         printf("Could not init SDL: %s\n", SDL_GetError());
@@ -93,7 +93,7 @@ SDL_Window *create_window() {
     return window;
 }
 
-void setup_screen_vao() {
+void setupScreenVAO() {
     float verticies[] = {
          0.5,  1,  0,   1, 1,   // top right
          0.5, -1,  0,   1, 0,   // bottom right
@@ -133,13 +133,13 @@ void setup_screen_vao() {
     glEnableVertexAttribArray(1);
 }
 
-GLuint setup_shader_data(GLuint shader) {
+GLuint setupShaderData(GLuint shader) {
     GLuint textures, colours;
     glActiveTexture(GL_TEXTURE0);
     glGenTextures(1, &textures);
     glBindTexture(GL_TEXTURE_1D, textures);
 
-    glTexImage1D(GL_TEXTURE_1D, 0, GL_R32UI, tile_types, 0, GL_RED_INTEGER, GL_UNSIGNED_INT, tile_disp);
+    glTexImage1D(GL_TEXTURE_1D, 0, GL_R32UI, TILE_TYPES, 0, GL_RED_INTEGER, GL_UNSIGNED_INT, TILE_DISP);
 
     glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -148,7 +148,7 @@ GLuint setup_shader_data(GLuint shader) {
     glGenTextures(1, &colours);
     glBindTexture(GL_TEXTURE_2D, colours);
 
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, scheme_size, colour_varients, 0, GL_RGB, GL_UNSIGNED_BYTE, colour_schemes);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, SCHEME_SIZE, COLOUR_VARIENTS, 0, GL_RGB, GL_UNSIGNED_BYTE, COLOUR_SCHEMES);
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -162,7 +162,7 @@ GLuint setup_shader_data(GLuint shader) {
     return glGetUniformLocation(shader, "shape_pos");
 }
 
-void update_shape_tex(falling_shape *shape) {
+void updateShapeTex(FallingShape *shape) {
     glActiveTexture(GL_TEXTURE2);
     glBindTexture(GL_TEXTURE_2D, shape->texture);
 
@@ -179,7 +179,7 @@ void update_shape_tex(falling_shape *shape) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 }
 
-void update_grid_tex(GLuint grid_tex) {
+void updateGridTex(GLuint grid_tex) {
     glActiveTexture(GL_TEXTURE3);
     glBindTexture(GL_TEXTURE_2D, grid_tex);
 
@@ -196,7 +196,7 @@ void update_grid_tex(GLuint grid_tex) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 }
 
-void shift_rows_down(int y, int rows) {
+void shiftRowsDown(int y, int rows) {
     int blocks_shifted = 1;
     y -= rows;
     for(; blocks_shifted && y >= 0; y--) {
@@ -213,11 +213,11 @@ void shift_rows_down(int y, int rows) {
     }
 }
 
-void place_shape(falling_shape *shape) {
+void placeShape(FallingShape *shape) {
     int clear[4] = {0};
-    for(int s_y = 0; s_y < shp_height; s_y++) {
+    for(int s_y = 0; s_y < SHP_HEIGHT; s_y++) {
         int y = shape->y + s_y;
-        for(int s_x = 0; s_x < shp_width; s_x++) {
+        for(int s_x = 0; s_x < SHP_WIDTH; s_x++) {
             if(!shape->hitbox[s_y][s_x]) {
                 continue;
             }
@@ -236,36 +236,36 @@ void place_shape(falling_shape *shape) {
     }
 
     int clear_streak = 0;
-    for(int s_y = 0; s_y < shp_height; s_y++) {
+    for(int s_y = 0; s_y < SHP_HEIGHT; s_y++) {
         int y = shape->y + s_y;
         clear_streak += clear[s_y];
         if((!clear[s_y] && clear_streak)) {
-            shift_rows_down(y - 1, clear_streak);
+            shiftRowsDown(y - 1, clear_streak);
             clear_streak = 0;
-        } else if (s_y == shp_height - 1 && clear_streak) {
-            shift_rows_down(y, clear_streak);
+        } else if (s_y == SHP_HEIGHT - 1 && clear_streak) {
+            shiftRowsDown(y, clear_streak);
         }
     }
     grid_updated = 1;
     shape->placed = 1;
 }
 
-int shape_index(int shape, int rot) {
-    return (shape * shape_rotations) + rot;
+int shapeIndex(int shape, int rot) {
+    return (shape * SHAPE_ROTATIONS) + rot;
 }
 
-void update_shape(falling_shape *shape) {
-    int index = shape_index(shape->shape, shape->rot);
-    get_shape_data(index, shape->scheme, shape->data);
-    get_shape_hit(index, shape->hitbox);
+void updateShape(FallingShape *shape) {
+    int index = shapeIndex(shape->shape, shape->rot);
+    getShapeData(index, shape->scheme, shape->data);
+    getShapeHit(index, shape->hitbox);
     shape->updated = 1;
 }
 
-int check_valid(falling_shape *shape, int x, int y, int rot) {
-    uint8_t test_hitbox[shp_height][shp_width];
-    get_shape_hit(shape_index(shape->shape, rot), test_hitbox);
-    for(int s_y = 0; s_y < shp_height; s_y++) {
-        for(int s_x = 0; s_x < shp_width; s_x++) {
+int checkValid(FallingShape *shape, int x, int y, int rot) {
+    uint8_t test_hitbox[SHP_HEIGHT][SHP_WIDTH];
+    getShapeHit(shapeIndex(shape->shape, rot), test_hitbox);
+    for(int s_y = 0; s_y < SHP_HEIGHT; s_y++) {
+        for(int s_x = 0; s_x < SHP_WIDTH; s_x++) {
             if(!test_hitbox[s_y][s_x]) {
                 continue;
             }
@@ -279,34 +279,34 @@ int check_valid(falling_shape *shape, int x, int y, int rot) {
     return 1;
 }
 
-int move_shape(falling_shape *shape, int x, int y) {
+int moveShape(FallingShape *shape, int x, int y) {
     x += shape->x; y += shape->y;
-    if(!check_valid(shape, x, y, shape->rot)) {
+    if(!checkValid(shape, x, y, shape->rot)) {
         return 0;
     }
     shape->x = x; shape->y = y;
-    update_shape(shape);
+    updateShape(shape);
     return 1;
 }
 
-int rotate_shape(falling_shape *shape, int rot) {
-    rot = (rot + shape->rot) % shape_rotations;
+int rotateShape(FallingShape *shape, int rot) {
+    rot = (rot + shape->rot) % SHAPE_ROTATIONS;
     if(rot < 0) {
-        rot += shape_rotations;
+        rot += SHAPE_ROTATIONS;
     }
-    if(!check_valid(shape, shape->x, shape->y, rot)) {
+    if(!checkValid(shape, shape->x, shape->y, rot)) {
         return 0;
     }
     shape->rot = rot;
-    update_shape(shape);
+    updateShape(shape);
     return 1;
 }
 
-void fill_bag(shape_bag *bag) {
-    for(int i = 0; i < shape_types; i++) {
+void fillBag(ShapeBag *bag) {
+    for(int i = 0; i < SHAPE_TYPES; i++) {
         bag->bag[i] = 0;
     }
-    for(int i = shape_types; i > 0; i--) {
+    for(int i = SHAPE_TYPES; i > 0; i--) {
         int index = rand() % i;
         for(int j = 0; j <= index; j++) {
             while(bag->bag[j]) {
@@ -315,42 +315,42 @@ void fill_bag(shape_bag *bag) {
         }
         bag->bag[index] = i - 1;
     }
-    bag->bag_size = shape_types;
+    bag->bag_size = SHAPE_TYPES;
 }
 
-int select_shape(shape_bag *bag) {
+int selectShape(ShapeBag *bag) {
     if(bag->bag_size == 0) {
-        fill_bag(bag);
+        fillBag(bag);
     }
     bag->bag_size--;
     return bag->bag[bag->bag_size];
 }
 
-void reset_shape(falling_shape *shape, shape_bag *bag) {
-    shape->shape = select_shape(bag);
-    shape->scheme = rand() % colour_varients;
+void resetShape(FallingShape *shape, ShapeBag *bag) {
+    shape->shape = selectShape(bag);
+    shape->scheme = rand() % COLOUR_VARIENTS;
     shape->rot = 0;
     shape->y = 0;
     shape->x = 3;
     shape->drop_timer = DROP_TIME;
     shape->updated = 1;
     shape->placed = 0;
-    update_shape(shape);
+    updateShape(shape);
 }
 
-void gravity(falling_shape *shape) {
-    if(!move_shape(shape, 0, 1)) {
-        place_shape(shape);
+void gravity(FallingShape *shape) {
+    if(!moveShape(shape, 0, 1)) {
+        placeShape(shape);
     }
 }
 
-void drop_shape(falling_shape *shape) {
+void dropShape(FallingShape *shape) {
     while(!shape->placed) {
         gravity(shape);
     }
 }
 
-int poll_events(falling_shape *shape) {
+int pollEvents(FallingShape *shape) {
     SDL_Event event;
     while(SDL_PollEvent(&event)) {
         switch (event.type) {
@@ -358,15 +358,15 @@ int poll_events(falling_shape *shape) {
             return 0;
         case SDL_KEYDOWN:
             switch (event.key.keysym.sym) {
-            case SDLK_q: rotate_shape(shape, 1);
+            case SDLK_q: rotateShape(shape, 1);
                 break;
-            case SDLK_e: rotate_shape(shape, -1);
+            case SDLK_e: rotateShape(shape, -1);
                 break;
-            case SDLK_d: move_shape(shape, 1, 0);
+            case SDLK_d: moveShape(shape, 1, 0);
                 break;
-            case SDLK_a: move_shape(shape, -1, 0);
+            case SDLK_a: moveShape(shape, -1, 0);
                 break;
-            case SDLK_SPACE: drop_shape(shape);
+            case SDLK_SPACE: dropShape(shape);
                 break;
             default:
                 break;
@@ -377,25 +377,25 @@ int poll_events(falling_shape *shape) {
     return 1;
 }
 
-int run_game(SDL_Window *window) {
+int runGame(SDL_Window *window) {
     GLuint shader;
     if(buildShader(&shader, "shaders/vert.glsl", "shaders/frag.glsl") == -1) {
         return -1;
     }
 
-    setup_screen_vao();
-    GLuint pos_loc = setup_shader_data(shader);
+    setupScreenVAO();
+    GLuint pos_loc = setupShaderData(shader);
     
     GLuint grid_tex;
     glGenTextures(1, &grid_tex);
 
-    shape_bag bag;
-    fill_bag(&bag);
+    ShapeBag bag;
+    fillBag(&bag);
 
-    falling_shape shape;
+    FallingShape shape;
     glGenTextures(1, &shape.texture);
     srand(time(NULL));
-    reset_shape(&shape, &bag);
+    resetShape(&shape, &bag);
 
     int running = 1;
     uint64_t prev_time = SDL_GetTicks64();
@@ -403,7 +403,7 @@ int run_game(SDL_Window *window) {
     while(running) {
         uint64_t time_value;
         while(
-            (running = poll_events(&shape)) &&
+            (running = pollEvents(&shape)) &&
             (time_value = SDL_GetTicks64()) - prev_time < (1000 / fps)
         ) {
             SDL_Delay(1);
@@ -418,18 +418,18 @@ int run_game(SDL_Window *window) {
         }
 
         if(shape.placed) {
-            reset_shape(&shape, &bag);
-            if(!check_valid(&shape, shape.x, shape.y, shape.rot)) {
+            resetShape(&shape, &bag);
+            if(!checkValid(&shape, shape.x, shape.y, shape.rot)) {
                 return 0;
             }
         }
 
         if(shape.updated) {
-            update_shape_tex(&shape);
+            updateShapeTex(&shape);
         }
 
         if(grid_updated) {
-            update_grid_tex(grid_tex);
+            updateGridTex(grid_tex);
             grid_updated = 0;
         }
 
@@ -445,9 +445,9 @@ int run_game(SDL_Window *window) {
 }
 
 int main(int argc, char const *argv[]) {
-    SDL_Window *window = create_window();
+    SDL_Window *window = createWindow();
     if(window) {
-        run_game(window);
+        runGame(window);
     }
 
     SDL_Quit();

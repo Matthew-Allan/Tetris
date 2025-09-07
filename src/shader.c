@@ -7,7 +7,7 @@
 #include <string.h>
 
 char *getFileText(const char *path) {
-    char *abs_path = get_path(path);
+    char *abs_path = getPath(path);
     FILE *file = fopen(abs_path, "r");
     free(abs_path);
 

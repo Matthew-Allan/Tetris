@@ -3,24 +3,24 @@
 
 #include <stdint.h>
 
-static uint16_t big_tiles[16] = {
+static uint16_t BIG_TILES[16] = {
     0x0000, 0x9000, 0x0700, 0x8800,
     0x0030, 0x6060, 0x0730, 0xd860,
     0x0001, 0x9001, 0x0404, 0x8a04,
     0x0022, 0x60b2, 0x042c, 0x5555
 };
 
-#define tile_types 14
-static uint32_t tile_disp[tile_types] = {
+#define TILE_TYPES 14
+static uint32_t TILE_DISP[TILE_TYPES] = {
     0x00000000, 0x5050f8fe, 0x5555ffff, 0xf5f5ffff,
     0x50505050, 0x55555555, 0xf5f5f5f5, 0x00005050,
     0x00005555, 0x80e0f5f5, 0x50505555, 0x5555f5f5,
     0x55555751, 0xb5255555
 };
 
-#define scheme_size 4
-#define colour_varients 6
-static uint8_t colour_schemes[colour_varients][scheme_size][3] = {
+#define SCHEME_SIZE 4
+#define COLOUR_VARIENTS 6
+static uint8_t COLOUR_SCHEMES[COLOUR_VARIENTS][SCHEME_SIZE][3] = {
     {
         {138, 150, 149},
         {195, 220, 216},
@@ -59,14 +59,14 @@ static uint8_t colour_schemes[colour_varients][scheme_size][3] = {
     },
 };
 
-#define shp_height 4
-#define shp_width 4
+#define SHP_HEIGHT 4
+#define SHP_WIDTH 4
 
-#define shape_types 7
-#define shape_rotations 4
-#define shape_count (shape_types * shape_rotations)
+#define SHAPE_TYPES 7
+#define SHAPE_ROTATIONS 4
+#define SHAPE_COUNT (SHAPE_TYPES * SHAPE_ROTATIONS)
 
-static uint16_t shapes[shape_count] = {
+static uint16_t SHAPES[SHAPE_COUNT] = {
     0b0000000011110000, 0b0100010001000100, 0b0000111100000000, 0b0010001000100010, // I
 
     0b0000000001110001, 0b0000001000100110, 0b0000010001110000, 0b0000001100100010, // J
