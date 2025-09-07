@@ -4,21 +4,21 @@
 <plist version="1.0">
 <dict>
     <key>CFBundleExecutable</key>
-    <string>Tetris</string>
+    <string>PROG_NAME</string>
 
     <key>CFBundleIdentifier</key>
-    <string>com.example.mygame</string>
+    <string>BUNDLE_ID</string>
 
     <key>CFBundleName</key>
-    <string>Tetris</string>
+    <string>PROG_NAME</string>
 
     <key>CFBundleVersion</key>
-    <string>1.0</string>
+    <string>PROG_VER</string>
 
     <key>CFBundlePackageType</key>
     <string>APPL</string>
 
     <key>CFBundleIconFile</key>
-    <string>Icon.icns</string>
+    <string>ICON_FILE</string>
 </dict>
 </plist>
