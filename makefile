@@ -9,6 +9,7 @@ PROG_VER = 1.0
 APP = $(PROG_NAME).app
 APP_CONTENTS = $(APP)/Contents
 APP_RESOURCES = $(APP_CONTENTS)/Resources
+APP_FRAMEWORKS = $(APP_CONTENTS)/Frameworks
 APP_MAC_OS = $(APP_CONTENTS)/MacOS
 BUNDLE_ID = com.suityourselfgames.tetris
 ICON = Icon.icns
@@ -35,9 +36,12 @@ clean:
 mac: clean build
 	mkdir -p $(APP_RESOURCES)
 	mkdir $(APP_MAC_OS)
+	mkdir $(APP_FRAMEWORKS)
+	cp MacOS/libSDL2-2.0.0.dylib $(APP_FRAMEWORKS)/libSDL2-2.0.0.dylib
 	cp MacOS/Info.plist $(APP_CONTENTS)/Info.plist
 	cp MacOS/Icon.icns $(APP_RESOURCES)/$(ICON)
 	cp -R shaders $(APP_RESOURCES)/shaders
 	cp $(PROG_NAME) $(APP_MAC_OS)/$(PROG_NAME)
+	install_name_tool -change $(shell brew --prefix sdl2)/lib/libSDL2-2.0.0.dylib @executable_path/../Frameworks/libSDL2-2.0.0.dylib Tetris.app/Contents/MacOS/Tetris
 	sed $(SUBS) MacOS/Info.plist > $(APP_CONTENTS)/Info.plist
 
