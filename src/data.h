@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 
+// Autotiling data for each of the 16 options after checking a 2x2 section of a grid.
 static uint16_t BIG_TILES[16] = {
     0x0000, 0x9000, 0x0700, 0x8800,
     0x0030, 0x6060, 0x0730, 0xd860,
@@ -10,7 +11,10 @@ static uint16_t BIG_TILES[16] = {
     0x0022, 0x60b2, 0x042c, 0x5555
 };
 
+// Number of tiles that can be printed to the screen.
 #define TILE_TYPES 14
+
+// Tile pixel data.
 static uint32_t TILE_DISP[TILE_TYPES] = {
     0x00000000, 0x5050f8fe, 0x5555ffff, 0xf5f5ffff,
     0x50505050, 0x55555555, 0xf5f5f5f5, 0x00005050,
@@ -18,8 +22,30 @@ static uint32_t TILE_DISP[TILE_TYPES] = {
     0x55555751, 0xb5255555
 };
 
-#define SCHEME_SIZE 4
-#define COLOUR_VARIENTS 6
+#define SHP_HEIGHT 4    // Height of a shape in tiles / 2.
+#define SHP_WIDTH 4     // Width of a shape in tiles / 2.
+
+#define SHAPE_TYPES 7       // Number of distinct shapes (ignoring rotation).
+#define SHAPE_ROTATIONS 4   // Number of possible rotations per shape.
+
+// Total number of shapes.
+#define SHAPE_COUNT (SHAPE_TYPES * SHAPE_ROTATIONS)
+
+// Shape data. Each bit defines if a tile should be placed in the 4x4 grid in row-major order.
+static uint16_t SHAPES[SHAPE_COUNT] = {
+    0b0000000011110000, 0b0100010001000100, 0b0000111100000000, 0b0010001000100010, // I
+    0b0000000001110001, 0b0000001000100110, 0b0000010001110000, 0b0000001100100010, // J
+    0b0000000001110100, 0b0000011000100010, 0b0000000101110000, 0b0000001000100011, // L
+    0b0000000001100110, 0b0000000001100110, 0b0000000001100110, 0b0000000001100110, // O
+    0b0000000000110110, 0b0000010001100010, 0b0000001101100000, 0b0000001000110001, // S
+    0b0000000001110010, 0b0000001001100010, 0b0000001001110000, 0b0000001000110010, // T
+    0b0000000001100011, 0b0000001001100100, 0b0000011000110000, 0b0000000100110010, // Z
+};
+
+#define SCHEME_SIZE 4       // Number of colours in each colour scheme.
+#define COLOUR_VARIENTS 6   // Number of colour schemes available.
+
+// Colour data for all available schemes.
 static uint8_t COLOUR_SCHEMES[COLOUR_VARIENTS][SCHEME_SIZE][3] = {
     {
         {138, 150, 149},
@@ -57,29 +83,6 @@ static uint8_t COLOUR_SCHEMES[COLOUR_VARIENTS][SCHEME_SIZE][3] = {
         {178, 199, 190},
         {199, 214, 208},
     },
-};
-
-#define SHP_HEIGHT 4
-#define SHP_WIDTH 4
-
-#define SHAPE_TYPES 7
-#define SHAPE_ROTATIONS 4
-#define SHAPE_COUNT (SHAPE_TYPES * SHAPE_ROTATIONS)
-
-static uint16_t SHAPES[SHAPE_COUNT] = {
-    0b0000000011110000, 0b0100010001000100, 0b0000111100000000, 0b0010001000100010, // I
-
-    0b0000000001110001, 0b0000001000100110, 0b0000010001110000, 0b0000001100100010, // J
-    
-    0b0000000001110100, 0b0000011000100010, 0b0000000101110000, 0b0000001000100011, // L
-
-    0b0000000001100110, 0b0000000001100110, 0b0000000001100110, 0b0000000001100110,  // O
-
-    0b0000000000110110, 0b0000010001100010, 0b0000001101100000, 0b0000001000110001, // S
-
-    0b0000000001110010, 0b0000001001100010, 0b0000001001110000, 0b0000001000110010, // T
-
-    0b0000000001100011, 0b0000001001100100, 0b0000011000110000, 0b0000000100110010, // Z
 };
 
 #endif

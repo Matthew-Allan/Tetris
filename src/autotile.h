@@ -5,17 +5,17 @@
 
 #include "data.h"
 
-#define TILE_HEIGHT 4
-#define TILE_WIDTH 4
+#define IMG_HEIGHT (SHP_HEIGHT * 2) // Height of an image buffer required to store a shape.
+#define IMG_WIDTH (SHP_WIDTH * 2)   // Width of an image buffer required to store a shape.
 
-#define IMG_HEIGHT (SHP_HEIGHT * 2)
-#define IMG_WIDTH (SHP_WIDTH * 2)
+#define TILE_HEIGHT 4   // Height of a tile in pixels.
+#define TILE_WIDTH 4    // Width of a tile in pixels.
 
-#define DISPLAY_HEIGHT (IMG_HEIGHT * TILE_HEIGHT)
-#define DISPLAY_WIDTH (IMG_WIDTH * TILE_WIDTH * 2)
+typedef uint8_t imageBuffer[IMG_HEIGHT][IMG_WIDTH];
+typedef uint8_t hitboxBuffer[SHP_HEIGHT][SHP_WIDTH];
 
-void getShapeData(int shape, uint8_t scheme, uint8_t image[IMG_HEIGHT][IMG_WIDTH]);
-void getShapeHit(int shape, uint8_t hitbox[SHP_HEIGHT][SHP_WIDTH]);
-void printShape(uint8_t image[IMG_HEIGHT][IMG_WIDTH]);
+void getShapeData(int shape, uint8_t scheme, imageBuffer image);
+void getShapeHit(int shape, hitboxBuffer hitbox);
+void printShape(imageBuffer image);
 
 #endif
