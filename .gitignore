@@ -1,4 +1,5 @@
 .vscode
-main.app.dSYM
-main.app
+Tetris.dSYM
+Tetris
+Tetris.app
 .DS_Store

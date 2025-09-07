@@ -5,6 +5,7 @@
 #include "shader.h"
 #include "data.h"
 #include "autotile.h"
+#include "paths.h"
 
 #define SCREEN_WIDTH 600
 #define SCREEN_HEIGHT 600
@@ -379,7 +380,12 @@ int poll_events(falling_shape *shape) {
 
 int run_game(SDL_Window *window) {
     GLuint shader;
-    if(buildShader(&shader, "/Users/matthewallan/Tetris/shaders/vert.glsl", "/Users/matthewallan/Tetris/shaders/frag.glsl") == -1) {
+    char *vert_path = get_path("shaders/vert.glsl"), *frag_path = get_path("shaders/frag.glsl");
+    int shader_outcome = buildShader(&shader, vert_path, frag_path);
+    free(vert_path);
+    free(frag_path);
+    
+    if(shader_outcome == -1) {
         return -1;
     }
 
@@ -445,9 +451,6 @@ int run_game(SDL_Window *window) {
 }
 
 int main(int argc, char const *argv[]) {
-    for(int i = 0; i < argc; i++) {
-        printf("%s\n", argv[i]);
-    }
     SDL_Window *window = create_window();
     if(window) {
         run_game(window);
