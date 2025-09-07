@@ -27,10 +27,7 @@ ICON = Icon.icns
 SUBS = -e 's:PROG_NAME:$(PROG_NAME):' -e 's:BUNDLE_ID:$(BUNDLE_ID):' -e 's:PROG_VER:$(PROG_VER):' -e 's:ICON_FILE:$(ICON):'
 
 mac: clean build
-	echo $(INFO_PLIST)
-	mkdir $(APP)
-	mkdir $(APP_CONTENTS)
-	mkdir $(APP_RESOURCES)
+	mkdir -p $(APP_RESOURCES)
 	mkdir $(APP_MAC_OS)
 	cp MacOS/Info.plist $(APP_CONTENTS)/Info.plist
 	cp MacOS/Icon.icns $(APP_RESOURCES)/$(ICON)
