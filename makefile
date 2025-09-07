@@ -44,4 +44,5 @@ mac: clean build
 	cp $(PROG_NAME) $(APP_MAC_OS)/$(PROG_NAME)
 	install_name_tool -change $(shell brew --prefix sdl2)/lib/libSDL2-2.0.0.dylib @executable_path/../Frameworks/libSDL2-2.0.0.dylib Tetris.app/Contents/MacOS/Tetris
 	sed $(SUBS) MacOS/Info.plist > $(APP_CONTENTS)/Info.plist
+	zip -r Tetris.app.zip Tetris.app
 
